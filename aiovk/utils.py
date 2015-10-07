@@ -94,14 +94,21 @@ class RequestsLikeResponse:
     @asyncio.coroutine
     def text(self):
 
-        return bytes.decode(self._data, encoding="utf-8")
+        try:
+
+            return bytes.decode(self._data, encoding="utf-8")
+
+        except UnicodeDecodeError:
+
+            return bytes.decode(self._data, encoding="cp1251")
 
     @data_required
     @asyncio.coroutine
     def json(self):
 
-        return json.loads(self.text())
+        return json.loads((yield from self.text()))
 
+    @property
     def url(self):
 
         return self.response.url
@@ -121,9 +128,10 @@ class RequestsLikeResponse:
 
         raise AttributeError(str.format("No '{}' attribute", name))
 
+
 class LoggingSession(aiohttp.ClientSession):
-    def request(self, method, url, **kwargs):
+    def _request(self, method, url, **kwargs):
         logger.debug('Request: %s %s, params=%r, data=%r', method, url, kwargs.get('params'), kwargs.get('data'))
-        response = RequestsLikeResponse((yield from super(LoggingSession, self).request(method, url, **kwargs)))
+        response = RequestsLikeResponse((yield from super(LoggingSession, self)._request(method, url, **kwargs)))
         logger.debug('Response: %s %s', response.status_code, response.url)
         return response

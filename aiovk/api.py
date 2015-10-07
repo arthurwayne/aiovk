@@ -38,11 +38,12 @@ class Session(object):
         )
 
     @property
+    @asyncio.coroutine
     def access_token(self):
         logger.debug('Check that we need new access token')
         if self.access_token_is_needed:
             logger.debug('We need new access token. Try to get it.')
-            self.access_token, self._access_token_expires_in = self.get_access_token()
+            self.access_token, self._access_token_expires_in = yield from self.get_access_token()
             logger.info('Got new access token')
         logger.debug('access_token = %r, expires in %s', self.censored_access_token, self._access_token_expires_in)
         return self._access_token
@@ -61,6 +62,7 @@ class Session(object):
     def get_user_login(self):
         logger.debug('Do nothing to get user login')
 
+    @asyncio.coroutine
     def get_access_token(self):
         """
         Dummy method
@@ -107,8 +109,13 @@ class Session(object):
         url = self.API_URL + request._method_name
         method_args = request._api._method_default_args.copy()
         method_args.update(stringify_values(request._method_args))
-        if self.access_token:
-            method_args['access_token'] = self.access_token
+        token = self.access_token
+        if asyncio.iscoroutine(token):
+
+            token = yield from token
+
+        if token:
+            method_args['access_token'] = token
         timeout = request._api._timeout
         response = yield from asyncio.wait_for(
             self.requests_session.post(url, data=method_args),

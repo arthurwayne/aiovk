@@ -54,6 +54,7 @@ class AuthMixin(object):
     def get_user_password(self):
         return self._user_password
 
+    @asyncio.coroutine
     def get_access_token(self):
         """
         Get access token using app id and user login and password.
@@ -63,8 +64,8 @@ class AuthMixin(object):
         auth_session = LoggingSession()
         with auth_session as self.auth_session:
             self.auth_session = auth_session
-            self.login()
-            auth_response_url_query = self.oauth2_authorization()
+            yield from self.login()
+            auth_response_url_query = yield from self.oauth2_authorization()
 
         if 'access_token' in auth_response_url_query:
             return auth_response_url_query['access_token'], auth_response_url_query['expires_in']
@@ -86,8 +87,13 @@ class AuthMixin(object):
             'email': self.user_login,
             'pass': self.user_password,
         }
-        response = yield from self.auth_session.post(login_form_action, login_form_data)
-        logger.debug('Cookies: %s', self.auth_session.cookies)
+        response = yield from self.auth_session.post(login_form_action, data=login_form_data)
+        yield from response.text()
+        with open("login.html", "wb") as fout:
+
+            fout.write(response._data)
+
+        # logger.debug('Cookies: %s', self.auth_session.cookies)
 
         response_url_query = get_url_query(response.url)
 
@@ -95,7 +101,7 @@ class AuthMixin(object):
             return
 
         if 'sid' in response_url_query:
-            self.auth_captcha_is_needed(response, login_form_data)
+            yield from self.auth_captcha_is_needed(response, login_form_data)
         elif response_url_query.get('act') == 'authcheck':
             self.auth_check_is_needed((yield from response.text()))
         elif 'security_check' in response_url_query:
@@ -116,8 +122,10 @@ class AuthMixin(object):
             'response_type': 'token',
             'scope': self.scope,
             'v': '5.28',
+            # "redirect_uri": "https://oauth.vk.com/blank.html",
         }
-        response = yield from self.auth_session.post(self.AUTHORIZE_URL, auth_data)
+        response = yield from self.auth_session.post(self.AUTHORIZE_URL, data=auth_data)
+        # print((yield from response.text()))
         response_url_query = get_url_query(response.url)
         if 'access_token' in response_url_query:
             return response_url_query
@@ -193,9 +201,10 @@ class InteractiveMixin(object):
         user_password = getpass.getpass('VK user password: ')
         return user_password
 
+    @asyncio.coroutine
     def get_access_token(self):
         logger.debug('InteractiveMixin.get_access_token()')
-        access_token, access_token_expires_in = super(InteractiveMixin, self).get_access_token()
+        access_token, access_token_expires_in = yield from super(InteractiveMixin, self).get_access_token()
         if not access_token:
             access_token = raw_input('VK API access token: ')
             access_token_expires_in = None
