@@ -97,7 +97,8 @@ class AuthMixin(object):
 
         response_url_query = get_url_query(response.url)
 
-        if 'remixsid' in self.auth_session.cookies or 'remixsid6' in self.auth_session.cookies:
+        # if 'remixsid' in self.auth_session.cookies or 'remixsid6' in self.auth_session.cookies:
+        if 'remixsid' in response_url_query or 'remixsid6' in response_url_query:
             return
 
         if 'sid' in response_url_query:
@@ -121,7 +122,7 @@ class AuthMixin(object):
             'display': 'mobile',
             'response_type': 'token',
             'scope': self.scope,
-            'v': '5.28',
+            'v': '5.37',
             # "redirect_uri": "https://oauth.vk.com/blank.html",
         }
         response = yield from self.auth_session.post(self.AUTHORIZE_URL, data=auth_data)
@@ -179,7 +180,7 @@ class AuthMixin(object):
         login_form_data['captcha_sid'] = response_url_dict['sid']
         login_form_data['captcha_key'] = self.on_captcha_is_needed(captcha_url)
 
-        response = yield from self.auth_session.post(captcha_form_action, login_form_data)
+        response = yield from self.auth_session.post(captcha_form_action, data=login_form_data)
 
         # logger.debug('Cookies %s', self.auth_session.cookies)
         # if 'remixsid' not in self.auth_session.cookies and 'remixsid6' not in self.auth_session.cookies:
@@ -211,7 +212,7 @@ class InteractiveMixin(object):
             access_token_expires_in = None
         return access_token, access_token_expires_in
 
-    def on_captcha_is_needed(self, url):
+    def on_captcha_is_needed(self, url, *args):
         """
         Read CAPTCHA key from shell
         """
