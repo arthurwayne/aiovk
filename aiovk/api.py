@@ -4,8 +4,10 @@ import logging
 import logging.config
 import asyncio
 
+import aiohttp
+
 from aiovk.logs import LOGGING_CONFIG
-from aiovk.utils import stringify_values, json_iter_parse, LoggingSession
+from aiovk.utils import stringify_values, json_iter_parse, RequestsLikeResponse
 from aiovk.exceptions import VkAuthError, VkAPIMethodError, CAPTCHA_IS_NEEDED, AUTHORIZATION_FAILED
 from aiovk.mixins import AuthMixin, InteractiveMixin
 
@@ -30,7 +32,7 @@ class Session(object):
         self.access_token_is_needed = False
 
         # self.requests_session = requests.Session()
-        self.requests_session = LoggingSession(
+        self.requests_session = aiohttp.ClientSession(
             headers={
                 'Accept': 'application/json',
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -121,7 +123,7 @@ class Session(object):
             self.requests_session.post(url, data=method_args),
             timeout=timeout,
         )
-        return response
+        return RequestsLikeResponse(response)
 
     def on_captcha_is_needed(self, error_data, method_request):
         """

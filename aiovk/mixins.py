@@ -4,8 +4,10 @@ import re
 import logging
 import asyncio
 
+import aiohttp
+
 from aiovk.exceptions import VkAuthError
-from aiovk.utils import urlparse, parse_qsl, raw_input, get_url_query, LoggingSession, get_form_action
+from aiovk.utils import urlparse, parse_qsl, raw_input, get_url_query, get_form_action, RequestsLikeResponse
 
 
 logger = logging.getLogger('vk')
@@ -61,7 +63,7 @@ class AuthMixin(object):
         """
         logger.debug('AuthMixin.get_access_token()')
 
-        auth_session = LoggingSession()
+        auth_session = aiohttp.ClientSession()
         with auth_session as self.auth_session:
             self.auth_session = auth_session
             yield from self.login()
@@ -79,6 +81,7 @@ class AuthMixin(object):
         """
 
         response = yield from self.auth_session.get(self.LOGIN_URL)
+        response = RequestsLikeResponse(response)
         login_form_action = get_form_action((yield from response.text()))
         if not login_form_action:
             raise VkAuthError('VK changed login flow')
@@ -88,6 +91,7 @@ class AuthMixin(object):
             'pass': self.user_password,
         }
         response = yield from self.auth_session.post(login_form_action, data=login_form_data)
+        response = RequestsLikeResponse(response)
         yield from response.text()
         with open("login.html", "wb") as fout:
 
@@ -125,6 +129,7 @@ class AuthMixin(object):
             # "redirect_uri": "https://oauth.vk.com/blank.html",
         }
         response = yield from self.auth_session.post(self.AUTHORIZE_URL, data=auth_data)
+        response = RequestsLikeResponse(response)
         # print((yield from response.text()))
         response_url_query = get_url_query(response.url)
         if 'access_token' in response_url_query:
@@ -137,6 +142,7 @@ class AuthMixin(object):
         logger.debug('Response form action: %s', form_action)
         if form_action:
             response = yield from self.auth_session.get(form_action)
+            response = RequestsLikeResponse(response)
             response_url_query = get_url_query(response.url)
             return response_url_query
 

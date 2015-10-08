@@ -127,11 +127,3 @@ class RequestsLikeResponse:
     def __getattr__(self, name):
 
         raise AttributeError(str.format("No '{}' attribute", name))
-
-
-class LoggingSession(aiohttp.ClientSession):
-    def _request(self, method, url, **kwargs):
-        logger.debug('Request: %s %s, params=%r, data=%r', method, url, kwargs.get('params'), kwargs.get('data'))
-        response = RequestsLikeResponse((yield from super(LoggingSession, self)._request(method, url, **kwargs)))
-        logger.debug('Response: %s %s', response.status_code, response.url)
-        return response
