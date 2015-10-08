@@ -4,11 +4,12 @@ from collections import Iterable
 import re
 import asyncio
 import functools
+import io
 
 import aiohttp
 
 
-STRING_TYPES = (str, bytes, bytearray)
+STRING_TYPES = (str, bytes, bytearray, io.IOBase)
 
 logger = logging.getLogger('vk')
 
@@ -55,7 +56,7 @@ def stringify_values(dictionary):
 
 def get_url_query(url):
     parsed_url = urlparse(url)
-    url_query = parse_qsl(parsed_url.fragment)
+    url_query = parse_qsl(parsed_url.fragment or parsed_url.query)
     # login_response_url_query can have multiple key
     url_query = dict(url_query)
     return url_query
@@ -117,7 +118,7 @@ class RequestsLikeResponse:
 
         if 400 <= self.status_code <= 599:
 
-            raise Exception(str.format("Bad status code '{}'", self.response.status_code))
+            raise Exception(str.format("Bad status code '{}'", self.response.status))
 
     @property
     def status_code(self):
