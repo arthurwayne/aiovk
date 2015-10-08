@@ -6,7 +6,7 @@ LOGGING_CONFIG = {
     'version': 1,
     'loggers': {
         'vk': {
-            'level': 'DEBUG',
+            'level': 'ERROR',
             'handlers': ['vk-stdout'],
             'propagate': False,
             },
