@@ -93,10 +93,6 @@ class AuthMixin(object):
         response = yield from self.auth_session.post(login_form_action, data=login_form_data)
         response = RequestsLikeResponse(response)
         yield from response.text()
-        with open("login.html", "wb") as fout:
-
-            fout.write(response._data)
-
         # logger.debug('Cookies: %s', self.auth_session.cookies)
 
         response_url_query = get_url_query(response.url)
@@ -130,7 +126,6 @@ class AuthMixin(object):
         }
         response = yield from self.auth_session.post(self.AUTHORIZE_URL, data=auth_data)
         response = RequestsLikeResponse(response)
-        # print((yield from response.text()))
         response_url_query = get_url_query(response.url)
         if 'access_token' in response_url_query:
             return response_url_query
