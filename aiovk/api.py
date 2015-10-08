@@ -3,6 +3,7 @@
 import logging
 import logging.config
 import asyncio
+import json
 
 import aiohttp
 
@@ -32,12 +33,7 @@ class Session(object):
         self.access_token_is_needed = False
 
         # self.requests_session = requests.Session()
-        self.requests_session = aiohttp.ClientSession(
-            headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }
-        )
+        self.requests_session = aiohttp.ClientSession()
 
     @property
     @asyncio.coroutine
@@ -102,25 +98,41 @@ class Session(object):
         if AUTHORIZATION_FAILED in error_codes:  # invalid access token
             logger.info('Authorization failed. Access token will be dropped')
             self.access_token = None
-            return (yield from self.make_request(method_request))
+            return (yield from self.make_request(method_request, **method_kwargs))
+        elif method_request._raw:
+
+            return json.loads((yield from response.text()))
+
         else:
             raise VkAPIMethodError(errors[0])
 
     @asyncio.coroutine
     def send_api_request(self, request):
-        url = self.API_URL + request._method_name
+
+        if not request._raw:
+
+            url = self.API_URL + request._method_name
+            timeout = request._api._timeout
+
+        else:
+
+            url = request._method_name
+            timeout = request._timeout
+
         method_args = request._api._method_default_args.copy()
         method_args.update(stringify_values(request._method_args))
-        token = self.access_token
-        if asyncio.iscoroutine(token):
+        if (yield from self.access_token):
 
-            token = yield from token
+            method_args['access_token'] = yield from self.access_token
 
-        if token:
-            method_args['access_token'] = token
-        timeout = request._api._timeout
+        response = yield from self.send_request(url, method_args, timeout)
+        return response
+
+    @asyncio.coroutine
+    def send_request(self, url, data, timeout):
+
         response = yield from asyncio.wait_for(
-            self.requests_session.post(url, data=method_args),
+            self.requests_session.post(url, data=data),
             timeout=timeout,
         )
         return RequestsLikeResponse(response)
@@ -167,13 +179,19 @@ class API(object):
     def __call__(self, method_name, **method_kwargs):
         return getattr(self, method_name)(**method_kwargs)
 
+    def upload(self, url, *, timeout=None, **method_kwargs):
+
+        return Request(self, url, True, timeout)(**method_kwargs)
+
 
 class Request(object):
-    __slots__ = ('_api', '_method_name', '_method_args')
+    __slots__ = ('_api', '_method_name', '_method_args', '_raw', '_timeout')
 
-    def __init__(self, api, method_name):
+    def __init__(self, api, method_name, raw=False, timeout=None):
         self._api = api
         self._method_name = method_name
+        self._raw = raw
+        self._timeout = timeout
 
     def __getattr__(self, method_name):
         return Request(self._api, self._method_name + '.' + method_name)
