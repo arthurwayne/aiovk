@@ -97,8 +97,8 @@ class AuthMixin(object):
 
         response_url_query = get_url_query(response.url)
 
-        # if 'remixsid' in self.auth_session.cookies or 'remixsid6' in self.auth_session.cookies:
-        if 'remixsid' in response_url_query or 'remixsid6' in response_url_query:
+        if 'remixsid' in self.auth_session.cookies or 'remixsid6' in self.auth_session.cookies:
+        # if 'remixsid' in response_url_query or 'remixsid6' in response_url_query:
             return
 
         if 'sid' in response_url_query:
