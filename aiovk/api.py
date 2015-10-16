@@ -1,13 +1,11 @@
 # coding=utf8
 
 import logging
-import logging.config
 import asyncio
 import json
 
 import aiohttp
 
-from aiovk.logs import LOGGING_CONFIG
 from aiovk.utils import stringify_values, json_iter_parse, RequestsLikeResponse
 from aiovk.exceptions import VkAuthError, VkAPIMethodError, CAPTCHA_IS_NEEDED, AUTHORIZATION_FAILED
 from aiovk.mixins import AuthMixin, InteractiveMixin
@@ -16,8 +14,7 @@ from aiovk.mixins import AuthMixin, InteractiveMixin
 VERSION = '2.0a4'
 
 
-logging.config.dictConfig(LOGGING_CONFIG)
-logger = logging.getLogger('vk')
+logger = logging.getLogger('aiovk')
 
 
 class Session(object):
@@ -25,7 +22,7 @@ class Session(object):
 
     def __init__(self, access_token=None):
 
-        logger.debug('API.__init__(access_token=%(access_token)r)', {'access_token': access_token})
+        logger.info('API.__init__(access_token=%(access_token)r)', {'access_token': access_token})
 
         # self.api_version = api_version
         # self.default_timeout = default_timeout
@@ -38,12 +35,12 @@ class Session(object):
     @property
     @asyncio.coroutine
     def access_token(self):
-        logger.debug('Check that we need new access token')
+        logger.info('Check that we need new access token')
         if self.access_token_is_needed:
-            logger.debug('We need new access token. Try to get it.')
+            logger.info('We need new access token. Try to get it.')
             self.access_token, self._access_token_expires_in = yield from self.get_access_token()
             logger.info('Got new access token')
-        logger.debug('access_token = %r, expires in %s', self.censored_access_token, self._access_token_expires_in)
+        logger.info('access_token = %r, expires in %s', self.censored_access_token, self._access_token_expires_in)
         return self._access_token
 
     @access_token.setter
@@ -58,20 +55,20 @@ class Session(object):
             return '{}***{}'.format(self._access_token[:4], self._access_token[-4:])
 
     def get_user_login(self):
-        logger.debug('Do nothing to get user login')
+        logger.info('Do nothing to get user login')
 
     @asyncio.coroutine
     def get_access_token(self):
         """
         Dummy method
         """
-        logger.debug('API.get_access_token()')
+        logger.info('API.get_access_token()')
         return self._access_token, self._access_token_expires_in
 
     @asyncio.coroutine
     def make_request(self, method_request, **method_kwargs):
 
-        logger.debug('Prepare API Method request')
+        logger.info('Prepare API Method request')
 
         response = yield from self.send_api_request(method_request)
         response.raise_for_status()

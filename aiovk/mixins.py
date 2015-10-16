@@ -10,7 +10,7 @@ from aiovk.exceptions import VkAuthError
 from aiovk.utils import urlparse, parse_qsl, raw_input, get_url_query, get_form_action, RequestsLikeResponse
 
 
-logger = logging.getLogger('vk')
+logger = logging.getLogger('aiovk')
 
 
 class AuthMixin(object):
@@ -20,7 +20,7 @@ class AuthMixin(object):
     CAPTCHA_URI = 'https://m.vk.com/captcha.php'
 
     def __init__(self, app_id=None, user_login='', user_password='', scope='offline', **kwargs):
-        logger.debug('AuthMixin.__init__(app_id=%(app_id)r, user_login=%(user_login)r, user_password=%(user_password)r, **kwargs=%(kwargs)s)',
+        logger.info('AuthMixin.__init__(app_id=%(app_id)r, user_login=%(user_login)r, user_password=%(user_password)r, **kwargs=%(kwargs)s)',
             dict(app_id=app_id, user_login=user_login, user_password=user_password, kwargs=kwargs))
 
         super(AuthMixin, self).__init__(**kwargs)
@@ -61,7 +61,7 @@ class AuthMixin(object):
         """
         Get access token using app id and user login and password.
         """
-        logger.debug('AuthMixin.get_access_token()')
+        logger.info('AuthMixin.get_access_token()')
 
         auth_session = aiohttp.ClientSession()
         with auth_session as self.auth_session:
@@ -93,7 +93,7 @@ class AuthMixin(object):
         response = yield from self.auth_session.post(login_form_action, data=login_form_data)
         response = RequestsLikeResponse(response)
         yield from response.text()
-        # logger.debug('Cookies: %s', self.auth_session.cookies)
+        # logger.info('Cookies: %s', self.auth_session.cookies)
 
         response_url_query = get_url_query(response.url)
 
@@ -135,7 +135,7 @@ class AuthMixin(object):
         logger.info('Getting permissions')
         # form_action = re.findall(r'<form method="post" action="(.+?)">', auth_response.text)[0]
         form_action = get_form_action((yield from response.text()))
-        logger.debug('Response form action: %s', form_action)
+        logger.info('Response form action: %s', form_action)
         if form_action:
             response = yield from self.auth_session.get(form_action)
             response = RequestsLikeResponse(response)
@@ -170,19 +170,19 @@ class AuthMixin(object):
 
         # form_url = re.findall(r'<form method="post" action="(.+)" novalidate>', response.text)
         captcha_form_action = get_form_action((yield from response.text()))
-        logger.debug('form_url %s', captcha_form_action)
+        logger.info('form_url %s', captcha_form_action)
         if not captcha_form_action:
             raise VkAuthError('Cannot find form url')
 
         captcha_url = '%s?s=%s&sid=%s' % (self.CAPTCHA_URI, response_url_dict['s'], response_url_dict['sid'])
-        # logger.debug('Captcha url %s', captcha_url)
+        # logger.info('Captcha url %s', captcha_url)
 
         login_form_data['captcha_sid'] = response_url_dict['sid']
         login_form_data['captcha_key'] = self.on_captcha_is_needed(captcha_url)
 
         response = yield from self.auth_session.post(captcha_form_action, data=login_form_data)
 
-        # logger.debug('Cookies %s', self.auth_session.cookies)
+        # logger.info('Cookies %s', self.auth_session.cookies)
         # if 'remixsid' not in self.auth_session.cookies and 'remixsid6' not in self.auth_session.cookies:
         #     raise VkAuthError('Authorization error (Bad password or captcha key)')
 
@@ -205,7 +205,7 @@ class InteractiveMixin(object):
 
     @asyncio.coroutine
     def get_access_token(self):
-        logger.debug('InteractiveMixin.get_access_token()')
+        logger.info('InteractiveMixin.get_access_token()')
         access_token, access_token_expires_in = yield from super(InteractiveMixin, self).get_access_token()
         if not access_token:
             access_token = raw_input('VK API access token: ')

@@ -11,7 +11,7 @@ import aiohttp
 
 STRING_TYPES = (str, bytes, bytearray, io.IOBase)
 
-logger = logging.getLogger('vk')
+logger = logging.getLogger('aiovk')
 
 
 try:
