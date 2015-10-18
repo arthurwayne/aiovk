@@ -7,7 +7,8 @@ import json
 import aiohttp
 
 from aiovk.utils import stringify_values, json_iter_parse, RequestsLikeResponse
-from aiovk.exceptions import VkAuthError, VkAPIMethodError, CAPTCHA_IS_NEEDED, AUTHORIZATION_FAILED
+from aiovk.exceptions import (VkAuthError, VkAPIMethodError, CAPTCHA_IS_NEEDED,
+                              AUTHORIZATION_FAILED)
 from aiovk.mixins import AuthMixin, InteractiveMixin
 
 
@@ -20,7 +21,7 @@ logger = logging.getLogger('aiovk')
 class Session(object):
     API_URL = 'https://api.vk.com/method/'
 
-    def __init__(self, access_token=None):
+    def __init__(self, access_token=None, *, pause_between_requests=None):
 
         logger.info('API.__init__(access_token=%(access_token)r)', {'access_token': access_token})
 
@@ -28,6 +29,7 @@ class Session(object):
         # self.default_timeout = default_timeout
         self.access_token = access_token
         self.access_token_is_needed = False
+        self.pause_between_requests = pause_between_requests
 
         # self.requests_session = requests.Session()
         self.requests_session = aiohttp.ClientSession()
@@ -128,6 +130,8 @@ class Session(object):
     @asyncio.coroutine
     def send_request(self, url, data, timeout):
 
+        # dirty realization
+        yield from asyncio.sleep(self.pause_between_requests)
         response = yield from asyncio.wait_for(
             self.requests_session.post(url, data=data),
             timeout=timeout,
